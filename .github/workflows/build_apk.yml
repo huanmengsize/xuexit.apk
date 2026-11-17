@@ -1,56 +1,71 @@
-- name: Unzip & Fix Source Files
-    run: |
-      unzip -o xuexitong_apk_project_v2.zip -x ".github/*"
-      sed -i 's/.*请求异常.*/                    return "{}";/g' app/src/main/java/com/oneclick/xuexitong/MainActivity.java
-      cat << 'EOF' > app/build.gradle
-      plugins {
-          id 'com.android.application'
-      }
-      android {
-          namespace 'com.oneclick.xuexitong'
-          compileSdk 34
-          defaultConfig {
-              applicationId "com.oneclick.xuexitong"
-              minSdk 24
-              targetSdk 34
-              versionCode 350
-              versionName "3.5.0-Pro"
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Unzip & Fix Source Files
+        run: |
+          unzip -o xuexitong_apk_project_v2.zip -x ".github/*"
+          sed -i '236s/.*/                    return "{}";/' app/src/main/java/com/oneclick/xuexitong/MainActivity.java
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
           }
-          buildTypes {
-              release {
-                  minifyEnabled false
+          android {
+              namespace 'com.oneclick.xuexitong'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.oneclick.xuexitong"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 350
+                  versionName "3.5.0-Pro"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
               }
           }
-          compileOptions {
-              sourceCompatibility JavaVersion.VERSION_17
-              targetCompatibility JavaVersion.VERSION_17
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
           }
-      }
-      dependencies {
-          implementation 'androidx.appcompat:appcompat:1.6.1'
-      }
-      EOF
+          EOF
 
-  - name: Set up JDK 17
-    uses: actions/setup-java@v4
-    with:
-      java-version: '17'
-      distribution: 'temurin'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-  - name: Accept Android Licenses & Install SDK 34
-    run: |
-      yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 \vert{}\vert{} true$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Accept Android Licenses & Install SDK 34
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-  - name: Setup Gradle
-    uses: gradle/actions/setup-gradle@v4
-    with:
-      gradle-version: '8.5'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.5'
 
-  - name: Build APK
-    run: gradle assembleDebug --no-daemon
+      - name: Build APK
+        run: gradle assembleDebug --no-daemon
 
-  - name: Upload Compiled APK
-    uses: actions/upload-artifact@v4
-    with:
-      name: Xuexitong-OneClick-V3-Pro-APK
-      path: app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload Compiled APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xuexitong-OneClick-V3-Pro-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
